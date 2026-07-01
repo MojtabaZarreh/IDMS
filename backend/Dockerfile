@@ -21,5 +21,3 @@ RUN echo "30 07 * * * (/usr/local/bin/python /app/domain/task.py && /usr/local/b
     chmod 0644 /etc/cron.d/mycron && \
     crontab /etc/cron.d/mycron && \
     touch /var/log/cron.log
-
-CMD cron && gunicorn --bind 0.0.0.0:8000 core.wsgi:application

@@ -6,9 +6,12 @@ services:
     container_name: django_app
     volumes:
       - ./backend:/app
-      - ./backend/db.sqlite3:/app/db.sqlite3
     ports:
       - "8000:8000"
+    command: >
+      sh -c "python manage.py migrate && 
+             service cron start && 
+             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     restart: always
 
   frontend:
