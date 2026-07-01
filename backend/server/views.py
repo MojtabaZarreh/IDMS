@@ -1,17 +1,19 @@
-from datetime import datetime, date
+from datetime import datetime
 from typing import Optional
+from django.shortcuts import get_object_or_404
 from ninja import Router, Schema
 from .models import Server
 from account.auth import APIKeyAuth
 
 api = Router(tags=["Server"], auth=APIKeyAuth())
-class ServerISchemaIn(Schema):
+
+class ServerSchemaIn(Schema):
     name: str
     ip_address: str
     expiration_date: datetime
     location: Optional[str] = None
     description: Optional[str] = None
-    
+
 class ServerSchemaOut(Schema):
     id: int
     name: str
@@ -23,33 +25,22 @@ class ServerSchemaOut(Schema):
 
 @api.get("/servers", response=list[ServerSchemaOut])
 def server_list(request):
-    return [ServerSchemaOut.from_orm(server) for server in Server.objects.all()]
+    return Server.objects.all()
 
 @api.post("/servers", response=ServerSchemaOut)
-def create_server(request, server: ServerISchemaIn):
-    obj = Server.objects.create(
-        **server.dict(
-            exclude_unset=True
-        )
-    )
-    return ServerSchemaOut.from_orm(obj)
+def create_server(request, server: ServerSchemaIn):
+    return Server.objects.create(**server.model_dump(exclude_unset=True))
 
 @api.delete("/servers/{server_id}")
 def delete_server(request, server_id: int):
-    try:
-        server = Server.objects.get(id=server_id)
-        server.delete()
-        return {"success": True}
-    except Server.DoesNotExist:
-        return {"error": f"Server with id {server_id} not found."}
+    server = get_object_or_404(Server, id=server_id)
+    server.delete()
+    return {"success": True}
 
 @api.put("/servers/{server_id}", response=ServerSchemaOut)
-def update_server(request, server_id: int, server: ServerISchemaIn):
-    try:
-        server_obj = Server.objects.get(id=server_id)
-        for attr, value in server.dict(exclude_unset=True).items():
-            setattr(server_obj, attr, value)
-        server_obj.save()
-        return ServerSchemaOut.from_orm(server_obj)
-    except Server.DoesNotExist:
-        return {"error": f"Server with id {server_id} not found."}
+def update_server(request, server_id: int, server: ServerSchemaIn):
+    server_obj = get_object_or_404(Server, id=server_id)
+    for attr, value in server.model_dump(exclude_unset=True).items():
+        setattr(server_obj, attr, value)
+    server_obj.save()
+    return server_obj
